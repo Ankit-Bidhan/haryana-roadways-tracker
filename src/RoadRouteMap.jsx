@@ -42,29 +42,14 @@ export default function RoadRouteMap({ stops = [] }) {
     const [isSimulating, setIsSimulating] = useState(false);
     const [progress, setProgress] = useState(0);
 
-    const busPosition =
-        roadRoute.length > 0
-            ? roadRoute[
-            Math.min(
-                Math.floor(progress * (roadRoute.length - 1)),
-                roadRoute.length - 1
-            )
-            ]
-            : null;
-
-    const busIcon = L.divIcon({
-        className: "simulated-bus-icon",
-        html: '<div class="bus-marker">🚌</div>',
-        iconSize: [36, 36],
-        iconAnchor: [18, 18],
-    });
-
-    // Accept latitude/longitude or lat/lng fields
+    // Normalize stop coordinates
     const validStops = stops
         .map((stop) => ({
             ...stop,
             lat: Number(stop.lat ?? stop.latitude),
-            lng: Number(stop.lng ?? stop.lon ?? stop.longitude),
+            lng: Number(
+                stop.lng ?? stop.lon ?? stop.longitude
+            ),
         }))
         .filter(
             (stop) =>
@@ -79,58 +64,26 @@ export default function RoadRouteMap({ stops = [] }) {
         stop.lng,
     ]);
 
+    // Load road route from OSRM
     useEffect(() => {
         let cancelled = false;
 
         async function getRoadRoute() {
             setRoadRoute([]);
+            setProgress(0);
+            setIsSimulating(false);
             setError("");
 
-            // Demo bus movement along the generated road route
-            useEffect(() => {
-                if (!isSimulating || roadRoute.length < 2) return;
-
-                const interval = setInterval(() => {
-                    setProgress((current) => {
-                        if (current >= 1) {
-                            setIsSimulating(false);
-                            return 1;
-                        }
-
-                        return Math.min(current + 0.002, 1);
-                    });
-                }, 100);
-
-                return () => clearInterval(interval);
-            }, [isSimulating, roadRoute.length]);
-
-            const busPosition = (() => {
-                if (roadRoute.length === 0) return null;
-
-                const index = Math.min(
-                    Math.floor(progress * (roadRoute.length - 1)),
-                    roadRoute.length - 1
-                );
-
-                return roadRoute[index];
-            })();
-
-            const busIcon = L.divIcon({
-                className: "simulated-bus-icon",
-                html: '<div class="bus-marker">🚌</div>',
-                iconSize: [36, 36],
-                iconAnchor: [18, 18],
-            });
-
             if (validStops.length < 2) {
-                setError("Route dikhane ke liye kam se kam 2 valid stops chahiye.");
+                setError(
+                    "Route dikhane ke liye kam se kam 2 valid stops chahiye."
+                );
                 return;
             }
 
             setLoading(true);
 
             try {
-                // OSRM expects longitude,latitude
                 const coordinates = validStops
                     .map((stop) => `${stop.lng},${stop.lat}`)
                     .join(";");
@@ -142,20 +95,26 @@ export default function RoadRouteMap({ stops = [] }) {
                 const response = await fetch(url);
 
                 if (!response.ok) {
-                    throw new Error("Routing service se response nahi mila.");
+                    throw new Error(
+                        "Routing service se response nahi mila."
+                    );
                 }
 
                 const data = await response.json();
 
-                if (data.code !== "Ok" || !data.routes?.length) {
-                    throw new Error("In stops ke beech road route nahi mila.");
+                if (
+                    data.code !== "Ok" ||
+                    !data.routes?.length
+                ) {
+                    throw new Error(
+                        "In stops ke beech road route nahi mila."
+                    );
                 }
 
-                // GeoJSON gives [longitude, latitude].
-                // Leaflet needs [latitude, longitude].
-                const routeCoordinates = data.routes[0].geometry.coordinates.map(
-                    ([lng, lat]) => [lat, lng]
-                );
+                const routeCoordinates =
+                    data.routes[0].geometry.coordinates.map(
+                        ([lng, lat]) => [lat, lng]
+                    );
 
                 if (!cancelled) {
                     setRoadRoute(routeCoordinates);
@@ -164,11 +123,13 @@ export default function RoadRouteMap({ stops = [] }) {
                 if (!cancelled) {
                     setError(
                         err.message ||
-                        "Road route load nahi hua. Internet connection check karo."
+                        "Road route load nahi hua. Internet check karo."
                     );
                 }
             } finally {
-                if (!cancelled) setLoading(false);
+                if (!cancelled) {
+                    setLoading(false);
+                }
             }
         }
 
@@ -179,10 +140,51 @@ export default function RoadRouteMap({ stops = [] }) {
         };
     }, [stops]);
 
+    // SIMULATION EFFECT — component ke top level par
+    useEffect(() => {
+        if (!isSimulating || roadRoute.length < 2) {
+            return;
+        }
+
+        const interval = setInterval(() => {
+            setProgress((current) => {
+                if (current >= 1) {
+                    setIsSimulating(false);
+                    return 1;
+                }
+
+                return Math.min(current + 0.002, 1);
+            });
+        }, 100);
+
+        return () => clearInterval(interval);
+    }, [isSimulating, roadRoute.length]);
+
+    // Current simulated bus position
+    const busPosition =
+        roadRoute.length > 0
+            ? roadRoute[
+            Math.min(
+                Math.floor(
+                    progress * (roadRoute.length - 1)
+                ),
+                roadRoute.length - 1
+            )
+            ]
+            : null;
+
+    const busIcon = L.divIcon({
+        className: "simulated-bus-icon",
+        html: '<div class="bus-marker">🚌</div>',
+        iconSize: [36, 36],
+        iconAnchor: [18, 18],
+    });
+
     if (validStops.length < 2) {
         return (
             <div className="map-message">
-                {error || "Map ke liye valid stop coordinates chahiye."}
+                {error ||
+                    "Map ke liye valid stop coordinates chahiye."}
             </div>
         );
     }
@@ -191,9 +193,15 @@ export default function RoadRouteMap({ stops = [] }) {
         <div className="road-map-wrapper">
             <div className="map-status">
                 {loading && "Road route load ho raha hai…"}
+
                 {!loading && roadRoute.length > 0 &&
                     "Road route · Demo routing"}
-                {error && <span className="map-error">{error}</span>}
+
+                {error && (
+                    <span className="map-error">
+                        {error}
+                    </span>
+                )}
             </div>
 
             <MapContainer
@@ -207,7 +215,13 @@ export default function RoadRouteMap({ stops = [] }) {
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
 
-                <FitRoute positions={roadRoute.length ? roadRoute : positions} />
+                <FitRoute
+                    positions={
+                        roadRoute.length
+                            ? roadRoute
+                            : positions
+                    }
+                />
 
                 {roadRoute.length > 0 && (
                     <Polyline
@@ -226,11 +240,19 @@ export default function RoadRouteMap({ stops = [] }) {
                         position={[stop.lat, stop.lng]}
                     >
                         <Popup>
-                            <strong>{stop.name || stop.city || `Stop ${index + 1}`}</strong>
-                            {stop.time && <div>Time: {stop.time}</div>}
+                            <strong>
+                                {stop.name ||
+                                    stop.city ||
+                                    `Stop ${index + 1}`}
+                            </strong>
+
+                            {stop.time && (
+                                <div>Time: {stop.time}</div>
+                            )}
                         </Popup>
                     </Marker>
                 ))}
+
                 {busPosition && (
                     <Marker
                         position={busPosition}
@@ -241,7 +263,8 @@ export default function RoadRouteMap({ stops = [] }) {
                             <strong>Demo bus</strong>
                             <div>Simulated movement</div>
                             <div>
-                                Progress: {Math.round(progress * 100)}%
+                                Progress:{" "}
+                                {Math.round(progress * 100)}%
                             </div>
                         </Popup>
                     </Marker>
@@ -272,7 +295,9 @@ export default function RoadRouteMap({ stops = [] }) {
                         setIsSimulating(false);
                         setProgress(0);
                     }}
-                    disabled={progress === 0 && !isSimulating}
+                    disabled={
+                        progress === 0 && !isSimulating
+                    }
                 >
                     Reset
                 </button>
@@ -283,8 +308,8 @@ export default function RoadRouteMap({ stops = [] }) {
             </div>
 
             <div className="map-disclaimer">
-                Road route is generated for demonstration. It may not match the
-                actual Haryana Roadways bus route.
+                Road route is generated for demonstration.
+                It may not match the actual Haryana Roadways bus route.
             </div>
         </div>
     );
