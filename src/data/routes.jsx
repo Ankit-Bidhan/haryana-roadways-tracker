@@ -1,7 +1,7 @@
 
 export const stops = [
-    { id: "jind", name: "Jind", lat: 29.316, lng: 76.326 },
-    { id: "alewa", name: "Alewa", lat: 29.490, lng: 76.405 },
+    { id: "jind", name: "Jind", lat: 29.315443268258544,lng: 76.35853789389431},
+    { id: "alewa", name: "Alewa", lat: 29.46523211714413, lng: 76.45393872696319},
     { id: "assandh", name: "Assandh", lat: 29.524, lng: 76.607 },
     { id: "karnal", name: "Karnal", lat: 29.685, lng: 76.990 },
     { id: "indri", name: "Indri", lat: 29.879, lng: 77.060 },

@@ -39,6 +39,12 @@ function App() {
     const trip = route?.trips.find((t) => t.id === selectedTrip);
     const fromIndex = route.stopIds.indexOf(from);
     const toIndex = route.stopIds.indexOf(to);
+    const routeStops = route.stopIds
+      .slice(fromIndex, toIndex + 1)
+      .map((id, i) => ({
+        ...getStop(id),
+        time: trip.times[fromIndex + i],
+      }));
 
     return (
       <div className="app-shell">
@@ -96,6 +102,7 @@ function App() {
               })}
             </div>
           </section>
+          <RoadRouteMap stops={routeStops} />
         </main>
       </div>
     );
