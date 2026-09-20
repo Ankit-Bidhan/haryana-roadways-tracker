@@ -42,6 +42,23 @@ export default function RoadRouteMap({ stops = [] }) {
     const [isSimulating, setIsSimulating] = useState(false);
     const [progress, setProgress] = useState(0);
 
+    const busPosition =
+        roadRoute.length > 0
+            ? roadRoute[
+            Math.min(
+                Math.floor(progress * (roadRoute.length - 1)),
+                roadRoute.length - 1
+            )
+            ]
+            : null;
+
+    const busIcon = L.divIcon({
+        className: "simulated-bus-icon",
+        html: '<div class="bus-marker">🚌</div>',
+        iconSize: [36, 36],
+        iconAnchor: [18, 18],
+    });
+
     // Accept latitude/longitude or lat/lng fields
     const validStops = stops
         .map((stop) => ({
