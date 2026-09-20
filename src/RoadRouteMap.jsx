@@ -39,6 +39,8 @@ export default function RoadRouteMap({ stops = [] }) {
     const [roadRoute, setRoadRoute] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
+    const [isSimulating, setIsSimulating] = useState(false);
+    const [progress, setProgress] = useState(0);
 
     // Accept latitude/longitude or lat/lng fields
     const validStops = stops
@@ -66,6 +68,42 @@ export default function RoadRouteMap({ stops = [] }) {
         async function getRoadRoute() {
             setRoadRoute([]);
             setError("");
+
+            // Demo bus movement along the generated road route
+            useEffect(() => {
+                if (!isSimulating || roadRoute.length < 2) return;
+
+                const interval = setInterval(() => {
+                    setProgress((current) => {
+                        if (current >= 1) {
+                            setIsSimulating(false);
+                            return 1;
+                        }
+
+                        return Math.min(current + 0.002, 1);
+                    });
+                }, 100);
+
+                return () => clearInterval(interval);
+            }, [isSimulating, roadRoute.length]);
+
+            const busPosition = (() => {
+                if (roadRoute.length === 0) return null;
+
+                const index = Math.min(
+                    Math.floor(progress * (roadRoute.length - 1)),
+                    roadRoute.length - 1
+                );
+
+                return roadRoute[index];
+            })();
+
+            const busIcon = L.divIcon({
+                className: "simulated-bus-icon",
+                html: '<div class="bus-marker">🚌</div>',
+                iconSize: [36, 36],
+                iconAnchor: [18, 18],
+            });
 
             if (validStops.length < 2) {
                 setError("Route dikhane ke liye kam se kam 2 valid stops chahiye.");
@@ -176,7 +214,56 @@ export default function RoadRouteMap({ stops = [] }) {
                         </Popup>
                     </Marker>
                 ))}
+                {busPosition && (
+                    <Marker
+                        position={busPosition}
+                        icon={busIcon}
+                        zIndexOffset={1000}
+                    >
+                        <Popup>
+                            <strong>Demo bus</strong>
+                            <div>Simulated movement</div>
+                            <div>
+                                Progress: {Math.round(progress * 100)}%
+                            </div>
+                        </Popup>
+                    </Marker>
+                )}
             </MapContainer>
+
+            <div className="simulation-controls">
+                <button
+                    onClick={() => setIsSimulating(true)}
+                    disabled={
+                        isSimulating ||
+                        roadRoute.length < 2 ||
+                        progress >= 1
+                    }
+                >
+                    Start
+                </button>
+
+                <button
+                    onClick={() => setIsSimulating(false)}
+                    disabled={!isSimulating}
+                >
+                    Pause
+                </button>
+
+                <button
+                    onClick={() => {
+                        setIsSimulating(false);
+                        setProgress(0);
+                    }}
+                    disabled={progress === 0 && !isSimulating}
+                >
+                    Reset
+                </button>
+            </div>
+
+            <div className="simulation-note">
+                Demo simulation only — actual bus GPS location nahi hai.
+            </div>
 
             <div className="map-disclaimer">
                 Road route is generated for demonstration. It may not match the

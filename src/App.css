@@ -608,3 +608,49 @@ footer {
     height: 320px;
   }
 }
+
+.simulated-bus-icon {
+  background: transparent;
+  border: none;
+}
+
+.bus-marker {
+  font-size: 27px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: white;
+  border: 2px solid #1769e0;
+  border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.simulation-controls {
+  display: flex;
+  gap: 10px;
+  margin: 12px 0;
+}
+
+.simulation-controls button {
+  flex: 1;
+  padding: 10px 14px;
+  border: none;
+  border-radius: 8px;
+  background: #1769e0;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.simulation-controls button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.simulation-note {
+  font-size: 12px;
+  color: #777;
+  margin-bottom: 12px;
+}
